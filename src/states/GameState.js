@@ -19,6 +19,7 @@ class GameState extends Phaser.State {
         this.bird.angle_max = 10;
 
         this.pipes = this.game.add.group(); 
+        this.score_text = this.game.add.group();
 
         this.game.input.onTap.add(this.onTap, this);
 
@@ -27,6 +28,7 @@ class GameState extends Phaser.State {
         this.last_pipe = null;
 
         this.score = 0;
+        this.updateScore();
 
         // this.createFlapTimer();
 
@@ -74,7 +76,22 @@ class GameState extends Phaser.State {
         let hole = this.game.world.height - pipe_offset;
         this.addPipe(this.game.world.width, hole, false);
         this.addPipe(this.game.world.width, hole, true);
+
         this.game.world.bringToTop(this.grass);
+        this.game.world.bringToTop(this.score_text);
+    }
+
+    updateScore() {
+        this.score_text.removeAll();
+        let n = this.score;
+        let x = 0;
+        do {
+            let digit = (n % 10).toString();
+            n = Math.floor(n / 10);
+            x -= this.game.cache.getImage(digit).width;
+            this.score_text.add(this.game.add.sprite(x, 20, digit));
+        } while (n > 0);
+        this.score_text.x = Math.floor(this.world.centerX - x / 2);
     }
 
     update() {    
@@ -88,7 +105,7 @@ class GameState extends Phaser.State {
                 if (pipe.count_score && this.bird.x > this.last_pipe.x + this.pipe_width) {
                     pipe.count_score = false;
                     this.score += 1;
-                    console.log(this.score);
+                    this.updateScore();
                 }
                 if (pipe.x < -this.pipe_width)
                     pipe.kill();

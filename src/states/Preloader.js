@@ -18,6 +18,10 @@ class Preloader extends Phaser.State {
         this.load.image('message', 'assets/sprites/message.png');
         this.load.image('bird', 'assets/sprites/bluebird-midflap.png');
         this.load.image('pipe', 'assets/sprites/pipe-green.png');
+
+        for (var i = 0; i <= 9; i++) {
+            this.load.image(i.toString(), 'assets/sprites/' + i.toString() + '.png')
+        }
     }
 
     create() {

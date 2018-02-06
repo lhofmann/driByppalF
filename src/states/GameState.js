@@ -1,19 +1,22 @@
 class GameState extends Phaser.State {
 
     create() {
+        this.game.physics.startSystem(Phaser.Physics.ARCADE);
+
         this.background = this.game.add.tileSprite(0, 0, 288, 512, 'background-day');
         this.background.autoScroll(-100, 0);
 
         this.grass = this.game.add.tileSprite(0, 512 - 112, 288, 112, 'base');
-        this.grass.autoScroll(-200, 0);        
+        this.grass.autoScroll(-200, 0);       
+        this.game.physics.arcade.enable(this.grass); 
+        this.grass.body.immovable = true;
 
-        this.game.physics.startSystem(Phaser.Physics.ARCADE);
-        this.bird = this.game.add.sprite(100, 245, 'bird');
+        this.bird = this.game.add.sprite(55, 245, 'bird');
         this.bird.anchor.setTo(-0.2, 0.5);
         this.game.physics.arcade.enable(this.bird);
         this.bird.body.setCircle(Math.ceil(this.bird.height / 2));
         this.bird.body.gravity.y = 1000;
-        this.bird.body.bounce.setTo(0.5, 0.5);
+        this.bird.body.bounce.setTo(0.5);
         this.bird.alive = true;
         this.bird.angle_min = -10;
         this.bird.angle_max = 10; 
@@ -37,6 +40,9 @@ class GameState extends Phaser.State {
 
         this.score = 0;
         this.updateScore();
+
+        let key_space = this.game.input.keyboard.addKey(Phaser.Keyboard.SPACEBAR);
+        key_space.onDown.add(this.onTap, this);
 
         // this.createFlapTimer();
 
@@ -77,6 +83,7 @@ class GameState extends Phaser.State {
         pipe.body.velocity.x = -200;
         pipe.body.immovable = true;
         pipe.count_score = top;
+        pipe.past_player = false;
         this.last_pipe = pipe;
     }
 
@@ -103,25 +110,44 @@ class GameState extends Phaser.State {
         this.score_text.x = Math.floor(this.world.centerX - x / 2);
     }
 
-    update() {    
-        if (this.bird.alive)
+    update() {
+        if (this.bird.alive) {
             this.game.physics.arcade.overlap(this.bird, this.pipes, this.onHit, null, this);
-        else
+        } else {
             this.game.physics.arcade.collide(this.bird, this.pipes);
+            this.game.physics.arcade.collide(this.bird, this.grass);
+        }
 
         if (this.last_pipe) {
             this.pipes.forEachAlive((function(pipe) {
-                if (pipe.count_score && this.bird.x > this.last_pipe.x + this.pipe_width) {
-                    pipe.count_score = false;
-                    this.score += 1;
-                    this.updateScore();
+                if (this.bird.x > this.last_pipe.x + this.pipe_width) {
+                    pipe.past_player = true;
+                    if (pipe.count_score) {
+                        pipe.count_score = false;
+                        this.score += 1;
+                        this.updateScore();
+                    }
                 }
                 if (pipe.x < -this.pipe_width)
                     pipe.kill();
             }), this);
 
-            if (this.last_pipe.x < 15)
+            if (this.last_pipe.x < 60)
                 this.addRowOfPipes();
+        }
+        if (this.bird.alive) {           
+            let delta = 0;     
+            if (this.game.input.keyboard.isDown(Phaser.Keyboard.UP))
+                delta = -5;
+            else if (this.game.input.keyboard.isDown(Phaser.Keyboard.DOWN))
+                delta = +5;
+            if (delta != 0) {
+                this.pipes.forEachAlive((function(pipe) {
+                    if (pipe.past_player)
+                        return;
+                    pipe.y += delta;
+                }), this);
+            }
         }
 
         if (this.bird.alive) {
@@ -129,12 +155,12 @@ class GameState extends Phaser.State {
                 this.bird.angle += 1; 
             if (this.bird.y > this.game.world.height - 150)
                 this.flap();
-        } else {            
+        } /* else {            
             if (this.bird.bottom > this.grass.y) {
                 this.bird.bottom = this.grass.y;
                 this.bird.body.velocity.y = 0;
             }
-        }
+        } */
     }
 
     flap() {

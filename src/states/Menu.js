@@ -1,7 +1,7 @@
 class Menu extends Phaser.State {
 
     create() {
-        let background = this.game.add.tileSprite(0, 0, 288, 512, 'background-day');
+        let background = this.game.add.tileSprite(0, 0, 288, 512, 'background');
         background.autoScroll(-100, 0);
 
         let grass = this.game.add.tileSprite(0, 512 - 112, 288, 112, 'base');

@@ -3,10 +3,12 @@ class GameState extends Phaser.State {
     create() {
         this.game.physics.startSystem(Phaser.Physics.ARCADE);
 
-        this.background = this.game.add.tileSprite(0, 0, 288, 512, 'background-day');
+        this.grass_y = this.game.world.height - this.game.cache.getImage('base').height;
+
+        this.background = this.game.add.tileSprite(0, 0, 288, 512, 'background');
         this.background.autoScroll(-100, 0);
 
-        this.grass = this.game.add.tileSprite(0, 512 - 112, 288, 112, 'base');
+        this.grass = this.game.add.tileSprite(0, this.grass_y, 288, 112, 'base');
         this.grass.autoScroll(-200, 0);       
         this.game.physics.arcade.enable(this.grass); 
         this.grass.body.immovable = true;
@@ -47,7 +49,7 @@ class GameState extends Phaser.State {
         // this.createFlapTimer();
 
         // delay appearance of first pipes
-        this.game.time.events.add(this.game.rnd.integerInRange(1000, 2000), this.addRowOfPipes, this); 
+        this.init_timer = this.game.time.events.add(this.game.rnd.integerInRange(1000, 2000), this.addRowOfPipes, this);
     }
 
     onHit() {
@@ -62,13 +64,20 @@ class GameState extends Phaser.State {
             pipe.body.velocity.x = 0;
         }, this);
         this.game.time.events.remove(this.timer);
+        this.game.time.events.remove(this.init_timer);
     }
 
     createFlapTimer() {
-        this.timer = this.game.time.events.add(this.game.rnd.integerInRange(250, 1000), this.autoFlap, this); 
+        this.timer = this.game.time.events.add(this.game.rnd.integerInRange(0, 750), this.telegraphFlap, this); 
+    }
+
+    telegraphFlap() {
+        this.bird.animations.play('red', 30, true);
+        this.timer = this.game.time.events.add(250, this.autoFlap, this); 
     }
 
     autoFlap() {        
+        this.bird.animations.play('blue', 30, true);
         this.flap();
         this.createFlapTimer();
     }
@@ -84,11 +93,12 @@ class GameState extends Phaser.State {
         pipe.body.immovable = true;
         pipe.count_score = top;
         pipe.past_player = false;
+        pipe.frame = 0;
         this.last_pipe = pipe;
     }
 
     addRowOfPipes() {
-        let pipe_offset = this.game.rnd.integerInRange(150, this.game.cache.getImage('pipe').height);
+        let pipe_offset = this.game.rnd.integerInRange(this.grass_y - 250, this.grass_y);
         let hole = this.game.world.height - pipe_offset;
         this.addPipe(this.game.world.width, hole, false);
         this.addPipe(this.game.world.width, hole, true);
@@ -113,29 +123,37 @@ class GameState extends Phaser.State {
     update() {
         if (this.bird.alive) {
             this.game.physics.arcade.overlap(this.bird, this.pipes, this.onHit, null, this);
+            this.game.physics.arcade.overlap(this.bird, this.grass, this.onHit, null, this);
         } else {
             this.game.physics.arcade.collide(this.bird, this.pipes);
             this.game.physics.arcade.collide(this.bird, this.grass);
         }
+        if (this.bird.bottom >= this.grass_y) {
+            this.bird.bottom = this.grass_y;
+            this.bird.body.velocity.y = -this.bird.body.velocity.y * this.bird.body.bounce.y;
+            this.onHit();        
+        }        
 
-        if (this.last_pipe) {
-            this.pipes.forEachAlive((function(pipe) {
-                if (this.bird.x > this.last_pipe.x + this.pipe_width) {
-                    pipe.past_player = true;
-                    if (pipe.count_score) {
-                        pipe.count_score = false;
-                        this.score += 1;
-                        this.updateScore();
-                    }
-                }
-                if (pipe.x < -this.pipe_width)
-                    pipe.kill();
-            }), this);
-
-            if (this.last_pipe.x < 60)
-                this.addRowOfPipes();
-        }
         if (this.bird.alive) {           
+            if (this.last_pipe) {
+                this.pipes.forEachAlive((function(pipe) {
+                    if (this.bird.right > pipe.right) {
+                        pipe.past_player = true;
+                        pipe.frame = 1;
+                        if (pipe.count_score) {
+                            pipe.count_score = false;
+                            this.score += 1;
+                            this.updateScore();
+                        }
+                    }
+                    if (pipe.x < -this.pipe_width)
+                        pipe.kill();
+                }), this);
+
+                if (this.last_pipe.x < 80)
+                    this.addRowOfPipes();
+            }
+
             let delta = 0;     
             if (this.game.input.keyboard.isDown(Phaser.Keyboard.UP))
                 delta = -5;
@@ -151,16 +169,11 @@ class GameState extends Phaser.State {
         }
 
         if (this.bird.alive) {
-            if (this.bird.angle < 20)
+            if (this.bird.angle < this.bird.angle_max)
                 this.bird.angle += 1; 
-            if (this.bird.y > this.game.world.height - 150)
-                this.flap();
-        } /* else {            
-            if (this.bird.bottom > this.grass.y) {
-                this.bird.bottom = this.grass.y;
-                this.bird.body.velocity.y = 0;
-            }
-        } */
+            // if (this.bird.y > this.game.world.height - 150)
+            //    this.flap();
+        }
     }
 
     flap() {

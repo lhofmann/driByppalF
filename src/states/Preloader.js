@@ -13,11 +13,15 @@ class Preloader extends Phaser.State {
         this.text = new RainbowText(this.game, center.x, center.y, "Loading");
         this.text.anchor.set(0.5);
 
-        this.load.image('background-day', 'assets/sprites/background-day.png');
+        let hours = new Date().getHours();
+        if (hours < 7 || hours > 17)
+            this.load.image('background', 'assets/sprites/background-night.png');
+        else
+            this.load.image('background', 'assets/sprites/background-day.png');
         this.load.image('base', 'assets/sprites/base.png');
         this.load.image('message', 'assets/sprites/message.png');
         this.game.load.spritesheet('bird', 'assets/sprites/bird.png', 34, 24);
-        this.load.image('pipe', 'assets/sprites/pipe-green.png');
+        this.game.load.spritesheet('pipe', 'assets/sprites/pipe.png', 52, 512);
 
         for (var i = 0; i <= 9; i++) {
             this.load.image(i.toString(), 'assets/sprites/' + i.toString() + '.png')

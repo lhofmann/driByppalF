@@ -16,7 +16,7 @@ class Preloader extends Phaser.State {
         this.load.image('background-day', 'assets/sprites/background-day.png');
         this.load.image('base', 'assets/sprites/base.png');
         this.load.image('message', 'assets/sprites/message.png');
-        this.load.image('bird', 'assets/sprites/bluebird-midflap.png');
+        this.game.load.spritesheet('bird', 'assets/sprites/bird.png', 34, 24);
         this.load.image('pipe', 'assets/sprites/pipe-green.png');
 
         for (var i = 0; i <= 9; i++) {

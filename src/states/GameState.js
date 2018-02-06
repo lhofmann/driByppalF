@@ -16,7 +16,15 @@ class GameState extends Phaser.State {
         this.bird.body.bounce.setTo(0.5, 0.5);
         this.bird.alive = true;
         this.bird.angle_min = -10;
-        this.bird.angle_max = 10;
+        this.bird.angle_max = 10; 
+
+        this.bird.animations.add('blue', [0, 1, 2, 1]);
+        this.bird.animations.add('red', [3, 4, 5, 4]);
+        this.bird.animations.add('yellow', [6, 7, 8, 7]);
+
+        this.bird.animations.add('flash', [0, 4, 8, 1, 3, 7, 2, 4]);
+
+        this.bird.animations.play('blue', 30, true);
 
         this.pipes = this.game.add.group(); 
         this.score_text = this.game.add.group();
@@ -41,6 +49,7 @@ class GameState extends Phaser.State {
             return;
 
         this.bird.alive = false;
+        this.bird.animations.stop();
         this.background.autoScroll(0, 0);
         this.grass.autoScroll(0, 0);
         this.pipes.forEach(function(pipe){

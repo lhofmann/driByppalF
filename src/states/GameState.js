@@ -46,6 +46,9 @@ class GameState extends Phaser.State {
         if (!bird.alive)
             return;
 
+        this.world.camera.flash('0x830303', 100, true);
+        this.world.camera.shake(0.02, 100, true);
+
         bird.alpha = 1;
         bird.alive = false;
         bird.animations.stop();

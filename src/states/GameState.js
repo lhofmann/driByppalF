@@ -1,10 +1,13 @@
 import Bird from '../objects/Bird.js';
 import Pipe from '../objects/Pipe.js';
-import ScoreDisplay from '../objects/ScoreDisplay.js'
+import ScoreDisplay from '../objects/ScoreDisplay.js';
+import RGBSplitFilter from '../filters/RGBSplitFilter.js';
+import TwistFilter from '../filters/TwistFilter.js';
 
 class GameState extends Phaser.State {
 
     create() {
+        this.game.world.filters = null;
         this.game.physics.startSystem(Phaser.Physics.ARCADE);
 
         this.grass_y = this.game.world.height - this.game.cache.getImage('base').height;
@@ -138,13 +141,30 @@ class GameState extends Phaser.State {
             }
 
             let delta = 0;     
-            if (this.game.input.keyboard.isDown(Phaser.Keyboard.UP))
+            if (this.game.input.keyboard.isDown(Phaser.Keyboard.UP)) {
                 delta = -5;
-            else if (this.game.input.keyboard.isDown(Phaser.Keyboard.DOWN))
+            } else if (this.game.input.keyboard.isDown(Phaser.Keyboard.DOWN)) {
                 delta = +5;
-            if (delta != 0) {
-                this.pipes.forEachAlive(pipe => { pipe.y += delta; });
             }
+            if (delta != 0) {
+                this.pipes.forEachAlive(pipe => { pipe.y += delta; }, this);
+            }
+        }
+        if (this.birds.countLiving() > 16) {
+            if (!this.game.world.filters) {
+                this.twist_filter = new TwistFilter();
+                this.twist_filter.radius = 0.1;
+
+                this.rgb_filter = new RGBSplitFilter();
+                this.rgb_filter.offset = 0;
+
+                this.game.world.filters = [this.twist_filter, this.rgb_filter];
+
+                this.game.add.tween(this.twist_filter).to({radius: 0.7}, 2000, Phaser.Easing.Quadratic.Out).start();
+                this.game.add.tween(this.rgb_filter).to({offset: 15.0}, 2000, Phaser.Easing.Quadratic.Out).start();
+            }
+        } else {
+            this.game.world.filters = null;
         }
     }
 

@@ -6,7 +6,7 @@ class Game extends Phaser.Game {
 
     constructor() {
         // super(288, 512, Phaser.AUTO, 'content', null);
-        super(288, 512, Phaser.AUTO);
+        super(288, 512, Phaser.WEBGL);
 
         this.state.add('Preloader', Preloader, false);
         this.state.add('Menu', Menu, false);

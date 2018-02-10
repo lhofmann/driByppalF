@@ -10,7 +10,7 @@ class Bird extends Phaser.Sprite {
 
         this.alive = true;
         this.angle_min = -10;
-        this.angle_max = 10; 
+        this.angle_max = 10;
 
         this.animations.add('blue', [0, 1, 2, 1]);
         this.animations.add('red', [3, 4, 5, 4]);
@@ -34,11 +34,18 @@ class Bird extends Phaser.Sprite {
             if (this.body.velocity.y < 0)
                 this.body.velocity.y *= -1;
         }
+        if (this.right < 0)
+            this.destroy();
     }
 
-    flap() {
+    flap(new_birds) {
         if (!this.alive)
             return;
+
+        var clone = new Bird(this.game, this.x, this.y);
+        clone.angle = this.angle;
+        clone.body.velocity.setTo(this.body.velocity.x, this.body.velocity.y);
+        new_birds.add(clone);
 
         this.body.velocity.y = -350;
         this.game.add.tween(this).to({angle: -20}, 100).start();

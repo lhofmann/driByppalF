@@ -17,7 +17,9 @@ class GameState extends Phaser.State {
         this.game.physics.arcade.enable(this.grass); 
         this.grass.body.immovable = true;
 
-        this.bird = new Bird(this.game, 55, 245);
+        this.new_birds = this.game.add.group();
+        this.birds = this.game.add.group();
+        this.birds.add(new Bird(this.game, 55, 245));
 
         this.pipes = this.game.add.group(); 
         this.score_text = new ScoreDisplay(this.game);
@@ -40,31 +42,36 @@ class GameState extends Phaser.State {
         this.init_timer = this.game.time.events.add(this.game.rnd.integerInRange(1000, 2000), this.addPipe, this);
     }
 
-    onHit() {
-        if (!this.bird.alive)
+    onHit(bird) {
+        if (!bird.alive)
             return;
 
-        this.bird.alive = false;
-        this.bird.animations.stop();
-        this.background.autoScroll(0, 0);
-        this.grass.autoScroll(0, 0);
-        this.pipes.forEach(pipe => pipe.stop());
-        this.game.time.events.remove(this.timer);
-        this.game.time.events.remove(this.init_timer);
+        bird.alpha = 1;
+        bird.alive = false;
+        bird.animations.stop();
+
+        if (this.birds.countLiving() <= 0) {
+            this.background.autoScroll(0, 0);
+            this.grass.autoScroll(0, 0);
+            this.pipes.forEach(pipe => pipe.stop());
+            this.game.time.events.remove(this.timer);
+            this.game.time.events.remove(this.init_timer);
+        }
     }
 
     createFlapTimer() {
-        this.timer = this.game.time.events.add(this.game.rnd.integerInRange(0, 750), this.telegraphFlap, this); 
+        this.timer = this.game.time.events.add(this.game.rnd.integerInRange(0, 500), this.telegraphFlap, this); 
     }
 
     telegraphFlap() {
-        this.bird.animations.play('red', 30, true);
+        this.birds.forEachAlive(bird => bird.animations.play('red', 30, true));
         this.timer = this.game.time.events.add(250, this.autoFlap, this); 
     }
 
-    autoFlap() {        
-        this.bird.animations.play('blue', 30, true);
-        this.bird.flap();
+    autoFlap() {
+        this.birds.forEachAlive(bird => bird.animations.play('blue', 30, true));
+        this.birds.forEachAlive(bird => bird.flap(this.new_birds));
+        this.birds.addMultiple(this.new_birds);
         this.createFlapTimer();
     }
 
@@ -77,28 +84,51 @@ class GameState extends Phaser.State {
     }
 
     update() {
-        if (this.bird.alive) {
-            this.pipes.forEach(pipe => this.game.physics.arcade.overlap(this.bird, pipe, this.onHit, null, this));
-            this.game.physics.arcade.overlap(this.bird, this.grass, this.onHit, null, this);
-        } else {
-            this.pipes.forEach(pipe => this.game.physics.arcade.collide(this.bird, pipe));
-            this.game.physics.arcade.collide(this.bird, this.grass);
-        }
-        if (this.bird.bottom >= this.grass_y) {
-            this.bird.bottom = this.grass_y;
-            this.bird.body.velocity.y = -this.bird.body.velocity.y * this.bird.body.bounce.y;
-            this.onHit();        
-        }        
+        this.birds.forEachAlive(
+            bird => this.pipes.forEach(
+                pipe => this.game.physics.arcade.overlap(bird, pipe, this.onHit, null, this), 
+                this), 
+            this);
+        this.birds.forEachAlive(
+            bird => this.game.physics.arcade.overlap(bird, this.grass, this.onHit, null, this), 
+            this);
 
-        if (this.bird.alive) {           
+        this.birds.forEachDead(
+            bird => this.pipes.forEach(
+                pipe => this.game.physics.arcade.collide(bird, pipe), 
+                this), 
+            this);
+        this.birds.forEachDead(
+            bird => this.game.physics.arcade.collide(bird, this.grass), 
+            this);
+
+        this.birds.forEach(
+            bird => {
+                if (bird.bottom >= this.grass_y) {
+                    bird.bottom = this.grass_y;
+                    bird.body.velocity.y = -bird.body.velocity.y * bird.body.bounce.y;
+                    this.onHit(bird);        
+                }
+            }, 
+            this
+        );
+
+        if (this.birds.countLiving() > 0) {  
+            let alpha = 1 / this.birds.countLiving();
+            this.birds.forEachAlive(bird => { bird.alpha = alpha; });
+
             if (this.last_pipe) {
-                this.pipes.forEachAlive(pipe => {
-                    if (this.bird.right > pipe.right) {
-                        pipe.deactivate();
-                        this.score += 1;
-                        this.score_text.score = this.score;
-                    }                    
-                }, this);
+                this.birds.forEachAlive(
+                    bird => this.pipes.forEachAlive(
+                        pipe => {
+                            if (bird.right > pipe.right) {
+                                pipe.deactivate();
+                                this.score += 1;
+                                this.score_text.score = this.score;
+                            }
+                        }, 
+                        this), 
+                    this);
 
                 if (this.last_pipe.left < 80)
                     this.addPipe();
@@ -116,8 +146,10 @@ class GameState extends Phaser.State {
     }
 
     onTap() {
-        if (this.bird.alive)
-            this.bird.flap();
+        if (this.birds.countLiving() > 0) {            
+            this.birds.forEachAlive(bird => bird.flap(this.new_birds));
+            this.birds.addMultiple(this.new_birds);
+        }
         else
             this.game.state.restart();
     }

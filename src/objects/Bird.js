@@ -42,10 +42,12 @@ class Bird extends Phaser.Sprite {
         if (!this.alive)
             return;
 
-        var clone = new Bird(this.game, this.x, this.y);
-        clone.angle = this.angle;
-        clone.body.velocity.setTo(this.body.velocity.x, this.body.velocity.y);
-        new_birds.add(clone);
+        if (this.parent.length + new_birds.length < 256) {
+            var clone = new Bird(this.game, this.x, this.y);
+            clone.angle = this.angle;
+            clone.body.velocity.setTo(this.body.velocity.x, this.body.velocity.y);
+            new_birds.add(clone);
+        }
 
         this.body.velocity.y = -350;
         this.game.add.tween(this).to({angle: -20}, 100).start();
